@@ -136,48 +136,63 @@ streamlit run streamlit_app.py
 
 ### Building a Windows EXE with PyInstaller
 
-If you want to package the Streamlit app as a standalone Windows executable, install PyInstaller and use a small launcher script to start the app in Streamlit mode.
+If you want to package the Streamlit app as a standalone Windows executable, the project includes a working launcher and spec file so the packaged app launches through Streamlit correctly.
 
-1. Install PyInstaller:
+1. Install dependencies including PyInstaller:
 
 ```bash
-pip install pyinstaller
+pip install -r requirements.txt
 ```
 
-2. Create a launcher such as `run_streamlit.py` in the project root:
+2. Use the bundled launcher in the project root:
+
+`run_streamlit.py`
 
 ```python
-from pathlib import Path
 import sys
+from pathlib import Path
+
 from streamlit.web import bootstrap
 
+
+def resolve_app_path() -> str:
+    if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+        base_dir = Path(sys._MEIPASS)
+    else:
+        base_dir = Path(__file__).resolve().parent
+
+    app_path = base_dir / "streamlit_app.py"
+    if not app_path.exists():
+        raise FileNotFoundError(f"Could not find Streamlit app: {app_path}")
+    return str(app_path)
+
+
 if __name__ == "__main__":
-    app_path = str(Path(__file__).resolve().parent / "streamlit_app.py")
-    sys.argv = [
-        "streamlit",
-        "run",
+    app_path = resolve_app_path()
+    bootstrap.run(
         app_path,
-        "--server.headless",
-        "true",
-        "--server.port",
-        "8501",
-    ]
-    bootstrap.run(app_path, "", [], {})
+        "",
+        [],
+        {
+            "server.headless": False,
+            "server.port": 8501,
+        },
+    )
 ```
 
-3. Build the executable:
+3. Build the executable using the project spec file:
 
 ```bash
-pyinstaller --onefile --windowed --collect-all streamlit run_streamlit.py
+pyinstaller run_streamlit.spec
 ```
 
-This will create an EXE under the `dist/` folder.
+This produces a Windows EXE in the `dist/` folder that launches the Streamlit UI instead of exiting silently.
 
 Notes:
 
-- Use `--windowed` for a GUI build on Windows.
-- Use `--noconsole` instead of `--windowed` if you prefer a console-less app without a visible terminal.
-- The small launcher is important because Streamlit apps are not usually launched directly as a normal script entry point.
+- The `run_streamlit.spec` file already includes the needed Streamlit hooks and the app files.
+- Use `console=False` in the spec for a GUI app; this is already configured for the packaged executable.
+- The launcher is required because Streamlit apps should be started through the Streamlit bootstrap path rather than by direct script execution.
 
 ---
 
