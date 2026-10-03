@@ -232,6 +232,10 @@ These thresholds are intentionally simple and are useful for quick human-readabl
 
 For sentence-level analysis, the text is split into sentence-like units and each sentence in document 1 is paired with the sentence in document 2 that has the highest cosine similarity to it.
 
+This is a greedy best-match strategy, not a full global optimization across all sentence pairs. In other words, the method does not search for the globally least-similar sentence pair across the entire matrix. Instead, for each sentence in document 1, it finds the single best partner in document 2, then ranks those best matches by their cosine similarity score.
+
+So the lowest score in the alignment list is the weakest among the selected best local matches, not the least-similar pairing possible across every sentence combination. It answers: “Which sentence in document 2 is closest to each sentence in document 1?” rather than “Which two sentences are the most different overall?”
+
 This generates a list of best sentence matches and allows the app to show:
 
 - strongest sentence matches
@@ -240,6 +244,8 @@ This generates a list of best sentence matches and allows the app to show:
 - best sentence similarity
 
 This is useful because the overall document score and the strongest sentence match are not always identical; they measure similarity at different levels of granularity.
+
+The lowest scoring pair is not the least similar possible pairing but the least similar best pairing.
 
 ---
 
