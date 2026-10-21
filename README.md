@@ -16,6 +16,7 @@ It supports plain text, Markdown, PDF, and DOCX inputs, and can optionally surfa
 This project uses Sentence-BERT embeddings and cosine similarity to compare documents:
 
 - document similarity score: a coverage-adjusted cosine score that measures shared meaning and penalizes content found in only one document
+- raw embedding score: the direct cosine similarity between the two complete-document embeddings
 - sentence alignment matches: which sentence in document 1 best matches which sentence in document 2
 - interpretation: labels the score as low, medium, or high
 
@@ -213,7 +214,12 @@ This keeps the semantic comparison stable without aggressively rewriting the con
 
 Both documents are encoded with a Sentence-BERT model into dense vectors. These vectors capture semantic meaning rather than exact word overlap.
 
-The raw document embedding similarity is computed as the cosine similarity between the two embeddings. The reported `cosine_similarity` is then adjusted using bidirectional sentence coverage:
+`DocumentSemanticProcessor.compare()` returns two related, but different, scores:
+
+- **`embedding_cosine_similarity`** is the direct cosine similarity between the two single-vector document embeddings. It measures how close the overall document vectors are, but it does not know whether one document contains substantial unrelated content. For example, a document containing all of Document 1 plus several unrelated paragraphs may still receive a high raw embedding score.
+- **`cosine_similarity`** is the reported, coverage-adjusted score. It starts from sentence-level semantic matches and penalizes content that cannot be matched in either direction. This is the score used for `interpretation` and displayed as “Coverage-adjusted similarity” in Streamlit.
+
+The coverage adjustment works as follows:
 
 - each sentence is matched to its strongest counterpart
 - weak matches below 0.5 are treated as misses
@@ -222,9 +228,23 @@ The raw document embedding similarity is computed as the cosine similarity betwe
 
 This prevents a document from receiving a high score merely because it contains one matching document plus several unrelated paragraphs. The unadjusted embedding result is also available as `embedding_cosine_similarity` in programmatic results.
 
-- values near `1.0` imply very similar meaning
-- values near `0.0` imply weak similarity
-- values in between are moderate semantic similarity
+Both values are cosine-style scores where values near `1.0` indicate stronger similarity and values near `0.0` indicate weaker similarity. They should not be interpreted interchangeably: use `cosine_similarity` for the document comparison result, and use `embedding_cosine_similarity` when you specifically want the unadjusted whole-document embedding comparison.
+
+For example:
+
+```python
+result = processor.compare(
+    text1=document1,
+    text2=document2,
+    normalize=True,
+    include_alignments=False,
+    top_k=5,
+)
+
+print(result["cosine_similarity"])           # coverage-adjusted score
+print(result["embedding_cosine_similarity"]) # raw document-embedding score
+print(result["interpretation"])              # based on cosine_similarity
+```
 
 ### 3. Interpretation thresholds
 
