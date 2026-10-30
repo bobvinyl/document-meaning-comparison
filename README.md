@@ -136,6 +136,17 @@ streamlit run streamlit_app.py
 4. Review the semantic similarity result and sentence alignment lists.
 5. Use the preview panes to inspect the source text around the comparison.
 
+### Privacy and local data handling
+
+The comparison code processes document text with a locally loaded Sentence-Transformers model; it does not explicitly send document contents to an external API. However, this does not by itself guarantee that the whole environment is offline or that no local copies are created:
+
+- On first use, the selected model may be downloaded from Hugging Face. Installing dependencies also typically accesses package repositories. To compare documents without network access, install dependencies and download the model in advance, then disable or block network access during comparison.
+- The Streamlit upload handler writes each uploaded file to a temporary directory on the computer running the app. The current implementation does not remove these files afterward, so they may remain in the operating system's temporary-file area.
+- The Streamlit app is a web server. Keep it accessible only from the computer processing the documents; do not expose its port to a network or share the app with other devices if the documents must stay on that computer.
+- Batch CSV output includes the input `doc1` and `doc2` values, and sentence-alignment output can contain document excerpts. Store output files with the same care as the source documents.
+
+For sensitive documents, use a trusted computer, protect local temporary files and outputs, and account for operating-system backups, permissions, and other software running on the computer. These notes describe this project's code; they cannot guarantee the behavior of third-party dependencies, the operating system, or the machine's network configuration.
+
 ### Building a Windows EXE with PyInstaller
 
 If you want to package the Streamlit app as a standalone Windows executable, the project includes a working launcher and spec file so the packaged app launches through Streamlit correctly.
